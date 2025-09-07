@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, SafeAreaView, ScrollView, FlatList } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import insights from '@/data/insights.json';
 import { router } from 'expo-router';
+import { apiService, ExplainResponse } from '@/services/api';
+import SearchSection from '@/components/SearchSection';
 
 interface Insight {
   text: string;
@@ -9,17 +12,34 @@ interface Insight {
 }
 
 export default function InsightsScreen() {
+  const params = useLocalSearchParams();
   const [currentInsight, setCurrentInsight] = useState<Insight>(insights[0]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [apiExplanation, setApiExplanation] = useState<ExplainResponse | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
 
   useEffect(() => {
-    // Rotate insights daily
-    const today = new Date();
-    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
-    const index = dayOfYear % insights.length;
-    setCurrentIndex(index);
-    setCurrentInsight(insights[index]);
-  }, []);
+    // Check if we have specific content to show from API
+    if (params.episode_id && params.chunk_index) {
+      loadApiExplanation(params.episode_id as string, parseInt(params.chunk_index as string));
+    } else {
+      // Rotate insights daily
+      const today = new Date();
+      const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
+      const index = dayOfYear % insights.length;
+      setCurrentIndex(index);
+      setCurrentInsight(insights[index]);
+    }
+  }, [params]);
+
+  const loadApiExplanation = async (episodeId: string, chunkIndex: number) => {
+    try {
+      const explanation = await apiService.explain(episodeId, chunkIndex);
+      setApiExplanation(explanation);
+    } catch (error) {
+      console.error('Failed to load explanation:', error);
+    }
+  };
 
   const handleNextInsight = () => {
     const nextIndex = (currentIndex + 1) % insights.length;
@@ -61,12 +81,54 @@ export default function InsightsScreen() {
           >
             <Text style={styles.backButtonText}>← Back</Text>
           </Pressable>
-          <Text style={styles.title}>Science Insights</Text>
-          <Text style={styles.subtitle}>Knowledge from neuroscience research</Text>
+          <View style={styles.titleRow}>
+            <View>
+              <Text style={styles.title}>Science Insights</Text>
+              <Text style={styles.subtitle}>Knowledge from neuroscience research</Text>
+            </View>
+            <Pressable 
+              style={styles.searchButton}
+              onPress={() => setShowSearch(!showSearch)}
+            >
+              <Text style={styles.searchButtonIcon}>🔍</Text>
+            </Pressable>
+          </View>
         </View>
 
-        {/* Featured Insight */}
-        <View style={styles.featuredCard}>
+        {/* Search Section */}
+        {showSearch && <SearchSection />}
+
+        {/* API-Driven Content or Featured Insight */}
+        {apiExplanation ? (
+          <View style={styles.featuredCard}>
+            <View style={styles.featuredHeader}>
+              <Text style={styles.featuredLabel}>🧠 Research Insight</Text>
+              <Pressable 
+                style={styles.closeButton}
+                onPress={() => setApiExplanation(null)}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </Pressable>
+            </View>
+            
+            <Text style={styles.featuredText}>{apiExplanation.snippet}</Text>
+            
+            {apiExplanation.excerpts.length > 0 && (
+              <View style={styles.excerptsContainer}>
+                <Text style={styles.excerptsLabel}>Key Points:</Text>
+                {apiExplanation.excerpts.map((excerpt, index) => (
+                  <Text key={index} style={styles.excerptText}>• {excerpt}</Text>
+                ))}
+              </View>
+            )}
+            
+            <View style={styles.sourceContainer}>
+              <Text style={styles.sourceLabel}>Source:</Text>
+              <Text style={styles.sourceText}>{apiExplanation.episode_title}</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.featuredCard}>
           <View style={styles.featuredHeader}>
             <Text style={styles.featuredLabel}>💡 Today's Insight</Text>
             <Text style={styles.insightCounter}>
@@ -97,6 +159,7 @@ export default function InsightsScreen() {
             </Pressable>
           </View>
         </View>
+        )}
 
         {/* All Insights Grid */}
         <View style={styles.allInsightsSection}>
@@ -189,6 +252,54 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#6b7280',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  searchButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchButtonIcon: {
+    fontSize: 18,
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButtonText: {
+    fontSize: 16,
+    color: '#6b7280',
+  },
+  excerptsContainer: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e0f2fe',
+  },
+  excerptsLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0c4a6e',
+    marginBottom: 8,
+  },
+  excerptText: {
+    fontSize: 14,
+    color: '#0369a1',
+    lineHeight: 20,
+    marginBottom: 4,
   },
   featuredCard: {
     backgroundColor: '#ffffff',

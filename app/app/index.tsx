@@ -4,6 +4,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import useStore, { Protocol } from '@/store/useStore';
 import protocols from '@/data/protocols.json';
 import { router } from 'expo-router';
+import DiscoverSection from '@/components/DiscoverSection';
+import { apiService, getUserId, mapFocusTracksToTags } from '@/services/api';
 
 export default function TodayScreen() {
   const { 
@@ -24,6 +26,43 @@ export default function TodayScreen() {
     initializeFromStorage();
   }, []);
 
+  // Load today's protocol from API or fallback to local
+  const loadTodaysProtocol = async () => {
+    try {
+      const userId = getUserId();
+      const tags = mapFocusTracksToTags(focusTracks);
+      
+      // Try to get AI-selected protocol from API
+      const apiProtocol = await apiService.getTodayProtocol(userId, focusTracks);
+      
+      // Convert API protocol to local format
+      const protocol: Protocol = {
+        slug: apiProtocol.protocol_slug,
+        title: apiProtocol.copy.title,
+        action: apiProtocol.copy.action,
+        why: apiProtocol.copy.why,
+        how: apiProtocol.copy.how,
+        track: focusTracks[0] as any, // Use first focus track as fallback
+      };
+      
+      setTodaysProtocol(protocol);
+    } catch (error) {
+      console.warn('Failed to load protocol from API, using fallback:', error);
+      
+      // Fallback to local protocol selection
+      const relevantProtocols = protocols.filter(p => 
+        p.track && focusTracks.includes(p.track as any)
+      );
+      
+      if (relevantProtocols.length > 0) {
+        // Simple rotation based on day of year
+        const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+        const selectedProtocol = relevantProtocols[dayOfYear % relevantProtocols.length];
+        setTodaysProtocol(selectedProtocol as Protocol);
+      }
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       // Check onboarding status when screen comes into focus
@@ -37,23 +76,27 @@ export default function TodayScreen() {
 
       // Set today's protocol if not already set
       if (hasCompletedOnboarding && !todaysProtocol && focusTracks.length > 0) {
-        const relevantProtocols = protocols.filter(p => 
-          p.track && focusTracks.includes(p.track as any)
-        );
-        
-        if (relevantProtocols.length > 0) {
-          // Simple rotation based on day of year
-          const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-          const selectedProtocol = relevantProtocols[dayOfYear % relevantProtocols.length];
-          setTodaysProtocol(selectedProtocol as Protocol);
-        }
+        loadTodaysProtocol();
       }
     }, [hasCompletedOnboarding, focusTracks, todaysProtocol, setTodaysProtocol])
   );
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (!todaysProtocolCompleted) {
       completeProtocol();
+      
+      // Log completion event to API
+      if (todaysProtocol) {
+        try {
+          await apiService.logEvent({
+            user_id: getUserId(),
+            event: 'completed',
+            protocol_slug: todaysProtocol.slug,
+          });
+        } catch (error) {
+          console.warn('Failed to log completion event:', error);
+        }
+      }
     }
   };
 
@@ -157,6 +200,11 @@ export default function TodayScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* Discover Section */}
+        {hasCompletedOnboarding && focusTracks.length > 0 && (
+          <DiscoverSection focusTracks={focusTracks} />
+        )}
 
         {/* Quick Access Navigation */}
         <View style={styles.quickNav}>

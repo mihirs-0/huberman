@@ -1,0 +1,50 @@
+[
+  {
+    "slug": "morning_sunlight",
+    "title": "Morning Sunlight Protocol",
+    "action": "Get 10-15 minutes of bright sunlight within 30-60 minutes of waking",
+    "why": "Triggers cortisol awakening response and sets circadian rhythm for better sleep",
+    "how": "Step outside or sit by a bright window. Face east if possible. No sunglasses needed.",
+    "tags": ["sleep", "circadian", "energy"],
+    "source": {
+      "episode_id": "ep_sleep_toolkit",
+      "chunk_index": 12
+    }
+  },
+  {
+    "slug": "cold_exposure",
+    "title": "Cold Exposure Protocol",
+    "action": "11 minutes total cold exposure per week, spread across 2-4 sessions",
+    "why": "Increases norepinephrine, dopamine, and builds resilience to stress",
+    "how": "Cold shower, ice bath, or cold plunge. Start with 30-60 seconds, build up gradually.",
+    "tags": ["resilience", "dopamine", "stress"],
+    "source": {
+      "episode_id": "ep_cold_exposure",
+      "chunk_index": 8
+    }
+  },
+  {
+    "slug": "nsdr",
+    "title": "Non-Sleep Deep Rest (NSDR)",
+    "action": "Practice 10-30 minute NSDR session when feeling tired or stressed",
+    "why": "Restores dopamine, reduces cortisol, and improves focus without caffeine",
+    "how": "Use guided yoga nidra, body scan, or hypnosis audio. Lie down comfortably.",
+    "tags": ["recovery", "focus", "stress"],
+    "source": {
+      "episode_id": "ep_nsdr_protocols",
+      "chunk_index": 5
+    }
+  },
+  {
+    "slug": "zone2_cardio",
+    "title": "Zone 2 Cardio",
+    "action": "150-200 minutes per week of Zone 2 cardiovascular exercise",
+    "why": "Improves mitochondrial function, fat oxidation, and cardiovascular health",
+    "how": "Exercise at conversational pace - you should be able to speak in full sentences.",
+    "tags": ["fitness", "longevity", "metabolic"],
+    "source": {
+      "episode_id": "ep_fitness_protocols",
+      "chunk_index": 15
+    }
+  }
+]
